@@ -68,11 +68,6 @@ export function BabylonScene() {
       const positions = box.getVerticesData(BABYLON.VertexBuffer.PositionKind)!;
       const uvs = box.getVerticesData(BABYLON.VertexBuffer.UVKind)!;
 
-      uvs.forEach((uv, index) => {
-        if (uv >= 1) {
-          uvs[index] = uv * 1;
-        }
-      });
       console.log({ positions, uvs });
 
       for (let i = 0; i < 24; i++) {
