@@ -1,6 +1,7 @@
 import * as BABYLON from "babylonjs";
 
 import { useEffect, useRef } from "react";
+import { calculateMeshUVs } from "../functions";
 
 const createAxisWithArrow = (
   direction: BABYLON.Vector3,
@@ -34,6 +35,7 @@ const createAxes = (scene: BABYLON.Scene) => {
 
 export function BabylonScene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previousScaling = useRef<BABYLON.Vector3>(BABYLON.Vector3.Zero());
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -54,53 +56,26 @@ export function BabylonScene() {
       createAxes(scene);
 
       const box = BABYLON.MeshBuilder.CreateBox("box", {}, scene);
+
       const material = new BABYLON.StandardMaterial("texture", scene);
 
       const texture = new BABYLON.Texture(
         "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png",
         scene
       );
-      // texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-      // texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
       material.emissiveTexture = texture;
       box.material = material;
 
-      const positions = box.getVerticesData(BABYLON.VertexBuffer.PositionKind)!;
-      const uvs = box.getVerticesData(BABYLON.VertexBuffer.UVKind)!;
-
-      console.log({ positions, uvs });
-
-      for (let i = 0; i < 24; i++) {
-        const pos = {
-          x: positions[i * 3],
-          y: positions[i * 3 + 1],
-          z: positions[i * 3 + 2],
-        };
-        const uv = { u: uvs[i * 2], v: uvs[i * 2 + 1] };
-        console.log(
-          `Vertex ${i}: ${JSON.stringify(pos)} - UV: ${JSON.stringify(uv)}`
-        );
-      }
-
-      box.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+      box.onBeforeRenderObservable.add((mesh) => {
+        if (!mesh.scaling.equalsWithEpsilon(previousScaling.current, 0.0001)) {
+          calculateMeshUVs(mesh);
+          previousScaling.current = mesh.scaling.clone();
+        }
+      });
 
       engine.runRenderLoop(() => {
         scene.render();
       });
-
-      // const initialBoxSize = box.scaling.clone();
-      // box.scaling = new BABYLON.Vector3(2, 2, 2);
-      // // Calculate the initial size of the box
-
-      // // Update texture UVs when scaling the box
-      // scene.onBeforeRenderObservable.add(() => {
-      //   const scaleFactor = box.scaling.divide(initialBoxSize);
-      //   console.log(scaleFactor);
-      //   if (!texture) return;
-      //   texture.uScale = scaleFactor.x;
-      //   texture.vScale = scaleFactor.y;
-      //   material.emissiveTexture = texture;
-      // });
 
       return () => {
         engine.dispose();
