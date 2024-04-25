@@ -55,12 +55,19 @@ export function BabylonScene() {
 
       createAxes(scene);
 
-      const box = BABYLON.MeshBuilder.CreateBox("box", {}, scene);
+      const box = BABYLON.MeshBuilder.CreateBox(
+        "box",
+        {
+          size: 1,
+        },
+        scene
+      );
 
       const material = new BABYLON.StandardMaterial("texture", scene);
 
       const texture = new BABYLON.Texture(
-        "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png",
+        // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png",
+        "./textures/colors.png",
         scene
       );
       material.emissiveTexture = texture;
