@@ -68,8 +68,6 @@ export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
     const uDiff = (textureUScale - width) / 2;
     const vDiff = (textureVScale - height) / 2;
 
-    console.log(`\n\nFace: ${face}`);
-
     const uvsPerFace = {
       lowerLeft: {
         u: uDiff,
@@ -118,9 +116,6 @@ export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
 
       uvs[uIdx] = u / textureUScale;
       uvs[vIdx] = v / textureVScale;
-      console.log(
-        `Vertex: ${vertexIdx}; u: ${uvs[uIdx]}; v: ${uvs[vIdx]}; sizeA: ${width}; sizeB: ${height}`
-      );
     });
   }
   mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);

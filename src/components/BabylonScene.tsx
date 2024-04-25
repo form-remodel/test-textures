@@ -66,8 +66,9 @@ export function BabylonScene() {
       const material = new BABYLON.StandardMaterial("texture", scene);
 
       const texture = new BABYLON.Texture(
-        // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png",
-        "./textures/colors.png",
+        "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png",
+        // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D_Half.png",
+        // "./textures/colors.png",
         scene
       );
       material.emissiveTexture = texture;
