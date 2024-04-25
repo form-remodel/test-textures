@@ -14,15 +14,17 @@ export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
 
   for (let face = 0; face < 6; face++) {
     const faceVertices: BABYLON.Vector3[] = [];
-    let minA = Number.POSITIVE_INFINITY;
-    let minB = Number.POSITIVE_INFINITY;
-    let maxA = Number.NEGATIVE_INFINITY;
-    let maxB = Number.NEGATIVE_INFINITY;
-    const faceNormal = faceNormalsForCube[face];
 
-    const isXFace = Math.abs(faceNormal.x) === 1;
-    const isYFace = Math.abs(faceNormal.y) === 1;
-    const isZFace = Math.abs(faceNormal.z) === 1;
+    const min = new BABYLON.Vector3(
+      Number.POSITIVE_INFINITY,
+      Number.POSITIVE_INFINITY,
+      Number.POSITIVE_INFINITY
+    );
+    const max = new BABYLON.Vector3(
+      Number.NEGATIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      Number.NEGATIVE_INFINITY
+    );
 
     for (let vertexIdx = 0; vertexIdx < 4; vertexIdx++) {
       const vertex = BABYLON.Vector3.FromArray(
@@ -30,72 +32,94 @@ export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
         (face * 4 + vertexIdx) * 3
       );
       faceVertices.push(vertex);
-      // faceNormal.x === 1 -> y, z
-      let a = vertex.y;
-      let b = vertex.z;
-      if (isYFace) {
-        a = vertex.x;
-        b = vertex.z;
-      } else if (isZFace) {
-        a = vertex.x;
-        b = vertex.y;
-      }
-
-      minA = Math.min(minA, a);
-      minB = Math.min(minB, b);
-      maxA = Math.max(maxA, a);
-      maxB = Math.max(maxB, b);
+      min.x = Math.min(min.x, vertex.x);
+      min.y = Math.min(min.y, vertex.y);
+      min.z = Math.min(min.z, vertex.z);
+      max.x = Math.max(max.x, vertex.x);
+      max.y = Math.max(max.y, vertex.y);
+      max.z = Math.max(max.z, vertex.z);
     }
-    let sizeA = maxA - minA;
-    let sizeB = maxB - minB;
+
+    const faceNormal = faceNormalsForCube[face];
+    const isXFace = Math.abs(faceNormal.x) === 1;
+    const isYFace = Math.abs(faceNormal.y) === 1;
+    const isZFace = Math.abs(faceNormal.z) === 1;
+
+    let width = 0;
+    let height = 0;
 
     if (isXFace) {
-      sizeA = sizeA * mesh.scaling.y;
-      sizeB = sizeB * mesh.scaling.z;
+      width = max.z - min.z;
+      width = width * mesh.scaling.z;
+      height = max.y - min.y;
+      height = height * mesh.scaling.y;
     } else if (isYFace) {
-      sizeA = sizeA * mesh.scaling.x;
-      sizeB = sizeB * mesh.scaling.z;
+      width = max.x - min.x;
+      width = width * mesh.scaling.x;
+      height = max.z - min.z;
+      height = height * mesh.scaling.z;
     } else if (isZFace) {
-      sizeA = sizeA * mesh.scaling.x;
-      sizeB = sizeB * mesh.scaling.y;
+      width = max.x - min.x;
+      width = width * mesh.scaling.x;
+      height = max.y - min.y;
+      height = height * mesh.scaling.y;
     }
 
-    const uFaceSize = isYFace ? sizeB : sizeA;
-    const vFaceSize = isYFace ? sizeA : sizeB;
-
-    const uDiff = (textureUScale - uFaceSize) / 2;
-    const vDiff = (textureVScale - vFaceSize) / 2;
+    const uDiff = (textureUScale - width) / 2;
+    const vDiff = (textureVScale - height) / 2;
 
     console.log(`\n\nFace: ${face}`);
-    faceVertices.forEach((_, vertexIdx) => {
+
+    const uvsPerFace = {
+      lowerLeft: {
+        u: uDiff,
+        v: vDiff,
+      },
+      lowerRight: {
+        u: textureUScale - uDiff,
+        v: vDiff,
+      },
+      upperRight: {
+        u: textureUScale - uDiff,
+        v: textureVScale - vDiff,
+      },
+      upperLeft: {
+        u: uDiff,
+        v: textureVScale - vDiff,
+      },
+    };
+
+    faceVertices.forEach((vertex, vertexIdx) => {
       const uIdx = (face * 4 + vertexIdx) * 2;
       const vIdx = uIdx + 1;
-      let u = uvs[uIdx];
-      let v = uvs[vIdx];
 
-      switch (vertexIdx) {
-        case 0:
-          u = uDiff;
-          v = vDiff;
-          break;
-        case 1:
-          u = textureUScale - uDiff;
-          v = vDiff;
-          break;
-        case 2:
-          u = textureUScale - uDiff;
-          v = textureVScale - vDiff;
-          break;
-        case 3:
-          u = uDiff;
-          v = textureVScale - vDiff;
-          break;
+      let lower = false;
+      let left = false;
+
+      if (isXFace) {
+        lower = vertex.y === min.y;
+        left = faceNormal.x < 0 ? vertex.z === max.z : vertex.z === min.z;
+      } else if (isYFace) {
+        lower = faceNormal.y < 0 ? vertex.z === min.z : vertex.z === max.z;
+        left = vertex.x === max.x;
+      } else if (isZFace) {
+        lower = vertex.y === min.y;
+        left = faceNormal.z < 0 ? vertex.x === min.x : vertex.x === max.x;
       }
+
+      const vertexLocation = lower
+        ? left
+          ? "lowerLeft"
+          : "lowerRight"
+        : left
+        ? "upperLeft"
+        : "upperRight";
+      const { u, v } = uvsPerFace[vertexLocation];
 
       uvs[uIdx] = u / textureUScale;
       uvs[vIdx] = v / textureVScale;
       console.log(
-        `Vertex: ${vertexIdx}; u: ${uvs[uIdx]}; v: ${uvs[vIdx]}; sizeA: ${sizeA}; sizeB: ${sizeB}`
+        `Vertex: ${vertexIdx}; u: ${uvs[uIdx]}; v: ${uvs[vIdx]}; sizeA: ${width}; sizeB: ${height}`
       );
     });
   }
