@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@babylonjs/core": "^7.3.2",
+    "@types/earcut": "^2.1.4",
     "babylonjs": "^7.3.2",
+    "earcut": "^2.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

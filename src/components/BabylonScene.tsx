@@ -1,7 +1,8 @@
 import * as BABYLON from "babylonjs";
+import earcut from "earcut";
 
 import { useEffect, useRef } from "react";
-import { calculateMeshUVs } from "../functions";
+import { getFaceUVFromShape } from "../functions";
 
 const createAxisWithArrow = (
   direction: BABYLON.Vector3,
@@ -35,7 +36,8 @@ const createAxes = (scene: BABYLON.Scene) => {
 
 export function BabylonScene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const previousScaling = useRef<BABYLON.Vector3>(BABYLON.Vector3.Zero());
+  // const boxPrevScale = useRef<BABYLON.Vector3>(BABYLON.Vector3.Zero());
+  // const planePrevScale = useRef<BABYLON.Vector3>(BABYLON.Vector3.Zero());
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -46,40 +48,43 @@ export function BabylonScene() {
         "camera",
         Math.PI / 2,
         Math.PI / 2,
-        2,
+        5,
         BABYLON.Vector3.Zero(),
         scene
       );
       camera.setTarget(BABYLON.Vector3.Zero());
       camera.attachControl(canvasRef.current, true);
+      camera.position = new BABYLON.Vector3(0, 5, 5);
 
       createAxes(scene);
 
-      const box = BABYLON.MeshBuilder.CreateBox(
-        "box",
-        {
-          size: 1,
-        },
-        scene
+      const shape = [
+        BABYLON.Vector3.Zero(),
+        new BABYLON.Vector3(1, 0, 0),
+        new BABYLON.Vector3(1, 0, 1),
+        new BABYLON.Vector3(0.5, 0, 1),
+        new BABYLON.Vector3(0.5, 0, 1.5),
+        new BABYLON.Vector3(0, 0, 1.5),
+      ].map((v) => v.scale(2));
+
+      const faceUv = getFaceUVFromShape(shape);
+
+      const extruded = BABYLON.MeshBuilder.ExtrudePolygon(
+        "extruded",
+        { shape, depth: 2, faceUV: faceUv },
+        scene,
+        earcut
+      );
+
+      const texture = new BABYLON.Texture(
+        // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png"
+        // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D_Half.png"
+        "./textures/colors.png"
       );
 
       const material = new BABYLON.StandardMaterial("texture", scene);
-
-      const texture = new BABYLON.Texture(
-        "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png",
-        // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D_Half.png",
-        // "./textures/colors.png",
-        scene
-      );
       material.emissiveTexture = texture;
-      box.material = material;
-
-      box.onBeforeRenderObservable.add((mesh) => {
-        if (!mesh.scaling.equalsWithEpsilon(previousScaling.current, 0.0001)) {
-          calculateMeshUVs(mesh);
-          previousScaling.current = mesh.scaling.clone();
-        }
-      });
+      extruded.material = material;
 
       engine.runRenderLoop(() => {
         scene.render();
@@ -93,3 +98,49 @@ export function BabylonScene() {
 
   return <canvas ref={canvasRef} />;
 }
+
+// const createBoxAndPlane = () => {
+//   const box = BABYLON.MeshBuilder.CreateBox(
+//     "box",
+//     {
+//       size: 1,
+//     },
+//     scene
+//   );
+
+//   const plane = BABYLON.MeshBuilder.CreatePlane(
+//     "plane",
+//     {
+//       size: 5,
+//     },
+//     scene
+//   );
+
+//   const material = new BABYLON.StandardMaterial("texture", scene);
+
+//   const texture = new BABYLON.Texture(
+//     // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D.png",
+//     // "./textures/Wood/Wood Floor Dark/T_WoodFloorDark_D_Half.png",
+//     "./textures/colors.png"
+//   );
+//   material.emissiveTexture = texture;
+//   box.material = material;
+
+//   // box.onBeforeRenderObservable.add((mesh) => {
+//   //   if (!mesh.scaling.equalsWithEpsilon(boxPrevScale.current)) {
+//   //     calculateMeshUVs(mesh);
+//   //     boxPrevScale.current = mesh.scaling.clone();
+//   //   }
+//   // });
+
+//   plane.material = material.clone("planeMaterial");
+//   plane.position = new BABYLON.Vector3(0, -2, 0);
+//   plane.rotation = BABYLON.Vector3.Right().scale(Math.PI / 2);
+
+//   // plane.onBeforeRenderObservable.add((mesh) => {
+//   //   if (!mesh.scaling.equalsWithEpsilon(planePrevScale.current)) {
+//   //     calculateMeshUVs(mesh, true);
+//   //     planePrevScale.current = mesh.scaling.clone();
+//   //   }
+//   // });
+// };

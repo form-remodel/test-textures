@@ -1,9 +1,10 @@
 import * as BABYLON from "babylonjs";
 
-const textureUScale = 1;
-const textureVScale = 1;
-
-export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
+export const calculateMeshUVs = (
+  mesh: BABYLON.Mesh,
+  textureUScale = 1,
+  textureVScale = 1
+) => {
   const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
   const uvs = mesh.getVerticesData(BABYLON.VertexBuffer.UVKind);
   const normals = mesh.getFacetLocalNormals();
@@ -13,6 +14,9 @@ export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
   if (!positions || !uvs || !normals) return;
 
   for (let face = 0; face < 6; face++) {
+    const faceNormal = faceNormalsForCube[face];
+
+    if (!faceNormal) break;
     const faceVertices: BABYLON.Vector3[] = [];
 
     const min = new BABYLON.Vector3(
@@ -40,7 +44,6 @@ export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
       max.z = Math.max(max.z, vertex.z);
     }
 
-    const faceNormal = faceNormalsForCube[face];
     const isXFace = Math.abs(faceNormal.x) === 1;
     const isYFace = Math.abs(faceNormal.y) === 1;
     const isZFace = Math.abs(faceNormal.z) === 1;
@@ -119,4 +122,58 @@ export const calculateMeshUVs = (mesh: BABYLON.Mesh) => {
     });
   }
   mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+};
+
+export const getFaceUVFromShape = (
+  shape: BABYLON.Vector3[],
+  // rotation = 0,
+  textureUScale = 1,
+  textureVScale = 1
+): BABYLON.Vector4[] => {
+  const min = new BABYLON.Vector3(
+    Number.POSITIVE_INFINITY,
+    Number.POSITIVE_INFINITY,
+    Number.POSITIVE_INFINITY
+  );
+  const max = new BABYLON.Vector3(
+    Number.NEGATIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    Number.NEGATIVE_INFINITY
+  );
+
+  shape.forEach((vertex) => {
+    min.x = Math.min(min.x, vertex.x);
+    min.y = Math.min(min.y, vertex.y);
+    min.z = Math.min(min.z, vertex.z);
+    max.x = Math.max(max.x, vertex.x);
+    max.y = Math.max(max.y, vertex.y);
+    max.z = Math.max(max.z, vertex.z);
+  });
+
+  //* Shape is defined in the XY plane
+  const width = max.x - min.x;
+  const depth = max.z - min.z;
+
+  const uDiff = (textureUScale - width) / 2;
+  const vDiff = (textureVScale - depth) / 2;
+
+  const uBottomLeft = uDiff / textureUScale;
+  const vBottomLeft = vDiff / textureVScale;
+  const uToprRight = (textureUScale - uDiff) / textureUScale;
+  const vTopRight = (textureVScale - vDiff) / textureVScale;
+
+  const top = new BABYLON.Vector4(
+    uBottomLeft,
+    vBottomLeft,
+    uToprRight,
+    vTopRight
+  ); // top
+
+  const faceUV = [
+    top,
+    new BABYLON.Vector4(0, 0, 0, 0), // sides,
+    top.clone(),
+  ];
+
+  return faceUV;
 };
