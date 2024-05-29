@@ -86,6 +86,8 @@ export function BabylonScene() {
       material.emissiveTexture = texture;
       extruded.material = material;
 
+      // turnTexture(extruded, "90");
+
       engine.runRenderLoop(() => {
         scene.render();
       });

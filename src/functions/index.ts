@@ -177,3 +177,68 @@ export const getFaceUVFromShape = (
 
   return faceUV;
 };
+
+export const turnTexture = (
+  mesh: BABYLON.Mesh,
+  rotation?: "0" | "90" | "180" | "270"
+) => {
+  if (!rotation || rotation === "0") return;
+  const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+  const uvs = mesh.getVerticesData(BABYLON.VertexBuffer.UVKind);
+
+  if (!uvs || !normals) return;
+  const numVertices = normals.length / 3;
+
+  const topUvs: { value: BABYLON.Vector2; idx: number }[] = [];
+  const bottomUvs: { value: BABYLON.Vector2; idx: number }[] = [];
+
+  for (let i = 0; i < numVertices; i++) {
+    const vertexNormal = BABYLON.Vector3.FromArray(normals, i * 3);
+    const vertexUV = BABYLON.Vector2.FromArray(uvs, i * 2);
+
+    if (vertexNormal.y === 1) {
+      topUvs.push({ value: vertexUV, idx: i });
+    } else if (vertexNormal.y === -1) {
+      bottomUvs.push({ value: vertexUV, idx: i });
+    }
+  }
+
+  topUvs.forEach(({ value, idx }) => {
+    let u = value.x;
+    let v = value.y;
+
+    if (rotation === "90") {
+      u = 1 - value.y;
+      v = value.x;
+    } else if (rotation === "180") {
+      u = 1 - value.x;
+      v = 1 - value.y;
+    } else if (rotation === "270") {
+      u = value.y;
+      v = 1 - value.x;
+    }
+
+    uvs[idx * 2] = u;
+    uvs[idx * 2 + 1] = v;
+  });
+  // bottomUvs.forEach(({ value, idx }) => {
+  //   let u = value.x;
+  //   let v = value.y;
+
+  //   if (rotation === "90") {
+  //     u = 1 - value.y;
+  //     v = value.x;
+  //   } else if (rotation === "180") {
+  //     u = 1 - value.x;
+  //     v = 1 - value.y;
+  //   } else if (rotation === "270") {
+  //     u = value.y;
+  //     v = 1 - value.x;
+  //   }
+
+  //   uvs[idx * 2] = u;
+  //   uvs[idx * 2 + 1] = v;
+  // });
+
+  mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+};
